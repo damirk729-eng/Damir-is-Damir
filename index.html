@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🌈 Платформер с стрельбой</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a2e, #1a1a4e);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+        
+        #gameWrapper {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 800 / 500;
+            background: linear-gradient(180deg, #1a3a5c, #0d1f30);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            overflow: hidden;
+            touch-action: none;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+            background: transparent;
+        }
+        
+        /* Контроллеры для мобильных устройств */
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            padding: 0 20px;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            touch-action: none;
+            z-index: 10;
+        }
+        
+        #leftControls {
+            display: flex;
+            gap: 15px;
+            pointer-events: none;
+            touch-action: none;
+        }
+        
+        #rightControls {
+            display: flex;
+            gap: 15px;
+            pointer-events: none;
+            touch-action: none;
+        }
+        
+        .ctrl-btn {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            touch-action: none;
+            cursor: pointer;
+            transition: all 0.1s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .ctrl-btn:active {
+            transform: scale(0.85);
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .ctrl-btn.jump-btn {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 200, 50, 0.2);
+            border-color: rgba(255, 200, 50, 0.4);
+            font-size: 32px;
+            color: #FFD700;
+            box-shadow: 0 4px 20px rgba(255, 200, 50, 0.2);
+        }
+        
+        .ctrl-btn.jump-btn:active {
+            background: rgba(255, 200, 50, 0.4);
+            border-color: rgba(255, 200, 50, 0.7);
+            box-shadow: 0 4px 30px rgba(255, 200, 50, 0.4);
+        }
+        
+        .ctrl-btn.shoot-btn {
+            background: rgba(255, 50, 50, 0.2);
+            border-color: rgba(255, 50, 50, 0.4);
+            font-size: 24px;
+            color: #FF6B6B;
+            box-shadow: 0 4px 20px rgba(255, 50, 50, 0.2);
+            width: 75px;
+            height: 75px;
+        }
+        
+        .ctrl-btn.shoot-btn:active {
+            background: rgba(255, 50, 50, 0.4);
+            border-color: rgba(255, 50, 50, 0.7);
+            box-shadow: 0 4px 30px rgba(255, 50, 50, 0.4);
+        }
+        
+        .key-hint {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 14px;
+            background: rgba(0,0,0,0.3);
+            padding: 8px 20px;
+            border-radius: 20px;
+            backdrop-filter: blur(5px);
+            display: none;
+            white-space: nowrap;
+            z-index: 5;
+        }
+        
+        @media (max-width: 768px), (pointer: coarse) {
+            #controls {
+                display: flex;
+            }
+            .key-hint {
+                display: none !important;
+            }
+        }
+        
+        @media (max-width: 500px) {
+            .ctrl-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 22px;
+            }
+            .ctrl-btn.jump-btn {
+                width: 65px;
+                height: 65px;
+                font-size: 26px;
+            }
+            .ctrl-btn.shoot-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 20px;
+            }
+            #controls {
+                padding: 0 10px;
+                bottom: 10px;
+            }
+            #leftControls {
+                gap: 10px;
+            }
+            #rightControls {
+                gap: 10px;
+            }
+        }
+        
+        @media (max-height: 600px) {
+            .ctrl-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+            }
+            .ctrl-btn.jump-btn {
+                width: 55px;
+                height: 55px;
+                font-size: 22px;
+            }
+            .ctrl-btn.shoot-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 16px;
+            }
+            #controls {
+                bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameWrapper">
+        <canvas id="gameCanvas"></canvas>
+        <div class="key-hint">WASD / Стрелки — движение, Пробел — прыжок, F — стрельба</div>
+        <div id="controls">
+            <div id="leftControls">
+                <button class="ctrl-btn" id="btnLeft">◀</button>
+                <button class="ctrl-btn" id="btnRight">▶</button>
+            </div>
+            <div id="rightControls">
+                <button class="ctrl-btn shoot-btn" id="btnShoot">🔫</button>
+                <button class="ctrl-btn jump-btn" id="btnJump">▲</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== ИНИЦИАЛИЗАЦИЯ =====
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const WIDTH = 800;
+        const HEIGHT = 500;
+        canvas.width = WIDTH;
+        canvas.height = HEIGHT;
+        
+        // ===== КНОПКИ =====
+        const btnLeft = document.getElementById('btnLeft');
+        const btnRight = document.getElementById('btnRight');
+        const btnJump = document.getElementById('btnJump');
+        const btnShoot = document.getElementById('btnShoot');
+        
+        const buttons = {
+            left: false,
+            right: false,
+            jump: false,
+            shoot: false
+        };
+        
+        function setupButton(btn, key) {
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                buttons[key] = true;
+                if (key === 'jump') handleJump();
+                if (key === 'shoot') handleShoot();
+            });
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                buttons[key] = false;
+            });
+            btn.addEventListener('touchcancel', (e) => {
+                buttons[key] = false;
+            });
+            
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                buttons[key] = true;
+                if (key === 'jump') handleJump();
+                if (key === 'shoot') handleShoot();
+            });
+            btn.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                buttons[key] = false;
+            });
+            btn.addEventListener('mouseleave', () => {
+                buttons[key] = false;
+            });
+        }
+        
+        setupButton(btnLeft, 'left');
+        setupButton(btnRight, 'right');
+        setupButton(btnJump, 'jump');
+        setupButton(btnShoot, 'shoot');
+        
+        // ===== КЛАВИАТУРА =====
+        const keys = {};
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            if (e.key === ' ' || e.key === 'w' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                handleJump();
+            }
+            if (e.key === 'f' || e.key === 'F' || e.key === 'e' || e.key === 'E') {
+                e.preventDefault();
+                handleShoot();
+            }
+        });
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        // ===== ИГРОВЫЕ ПАРАМЕТРЫ =====
+        const GRAVITY = 0.6;
+        const WIN_SCORE = 50;
+        
+        // ===== ИГРОК =====
+        const player = {
+            x: 100,
+            y: 300,
+            w: 30,
+            h: 40,
+            vx: 0,
+            vy: 0,
+            speed: 4,
+            jumpPower: -12,
+            onGround: false,
+            health: 100,
+            maxHealth: 100,
+            facing: 1,
+            color: '#4FC3F7',
+            shootCooldown: 0,
+            shootDelay: 12,
+            ammo: 30,
+            maxAmmo: 30,
+            reloading: false,
+            reloadTimer: 0,
+            reloadTime: 60
+        };
+        
+        // ===== МАССИВЫ =====
+        const platforms = [];
+        const enemies = [];
+        const bullets = [];
+        const enemyBullets = [];
+        const particles = [];
+        const ammoPacks = [];
+        
+        let score = 0;
+        let gameOver = false;
+        let win = false;
+        let frameCount = 0;
+        
+        // ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
+        function rand(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+        
+        function randInt(min, max) {
+            return Math.floor(rand(min, max + 1));
+        }
+        
+        function rectCollide(a, b) {
+            return a.x < b.x + b.w && a.x + a.w > b.x &&
+                   a.y < b.y + b.h && a.y + a.h > b.y;
+        }
+        
+        function dist(x1, y1, x2, y2) {
+            return Math.hypot(x2 - x1, y2 - y1);
+        }
+        
+        function spawnParticles(x, y, color, count = 20, speed = 5) {
+            for (let i = 0; i < count; i++) {
+                const angle = rand(0, Math.PI * 2);
+                const spd = rand(1, speed);
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * spd,
+                    vy: Math.sin(angle) * spd - 1,
+                    life: randInt(20, 60),
+                    maxLife: 60,
+                    size: rand(2, 6),
+                    color: color,
+                    gravity: 0.1
+                });
+            }
+        }
+        
+        // ===== ДЕЙСТВИЯ =====
+        function handleJump() {
+            if (gameOver || win) return;
+            if (player.onGround) {
+                player.vy = player.jumpPower;
+                player.onGround = false;
+                spawnParticles(player.x + player.w/2, player.y + player.h, '#B3E5FC', 10, 3);
+            }
+        }
+        
+        function handleShoot() {
+            if (gameOver || win) return;
+            if (player.shootCooldown > 0) return;
+            if (player.ammo <= 0) {
+                // Анимация "нет патронов"
+                spawnParticles(player.x + player.w/2, player.y + player.h/2, '#FF6B6B', 5, 2);
+                return;
+            }
+            
+            // Создаем пулю
+            const bx = player.x + player.w/2 + player.facing * 30;
+            const by = player.y + player.h/2 - 2;
+            bullets.push({
+                x: bx,
+                y: by,
+                w: 10,
+                h: 6,
+                vx: player.facing * 10,
+                vy: 0,
+                damage: 1,
+                life: 100,
+                trail: []
+            });
+            
+            player.ammo--;
+            player.shootCooldown = player.shootDelay;
+            
+            // Эффект выстрела
+            spawnParticles(bx - player.facing * 5, by, '#FFD700', 8, 4);
+            spawnParticles(bx - player.facing * 5, by, '#FF6B00', 5, 3);
+        }
+        
+        function reloadAmmo() {
+            if (player.reloading) return;
+            if (player.ammo >= player.maxAmmo) return;
+            player.reloading = true;
+            player.reloadTimer = player.reloadTime;
+        }
+        
+        // ===== СОЗДАНИЕ УРОВНЯ =====
+        function createLevel() {
+            // Пол
+            platforms.push({ x: 0, y: HEIGHT - 40, w: WIDTH, h: 40, color: '#4a7c59' });
+            
+            // Платформы
+            const platData = [
+                { x: 80, y: 400, w: 150, h: 20 },
+                { x: 320, y: 350, w: 130, h: 20 },
+                { x: 540, y: 300, w: 160, h: 20 },
+                { x: 180, y: 240, w: 120, h: 20 },
+                { x: 430, y: 190, w: 140, h: 20 },
+                { x: 650, y: 140, w: 110, h: 20 },
+                { x: 50, y: 140, w: 90, h: 20 },
+                { x: 300, y: 90, w: 160, h: 20 },
+                { x: 550, y: 60, w: 100, h: 20 },
+            ];
+            
+            platData.forEach(p => {
+                platforms.push({
+                    x: p.x,
+                    y: p.y,
+                    w: p.w,
+                    h: p.h,
+                    color: '#8D6E63'
+                });
+            });
+            
+            // Враги
+            const enemyPositions = [
+                { x: 180, y: 380 },
+                { x: 420, y: 330 },
+                { x: 600, y: 280 },
+                { x: 220, y: 220 },
+                { x: 480, y: 170 },
+                { x: 700, y: 120 },
+                { x: 100, y: 120 },
+            ];
+            
+            enemyPositions.forEach(pos => {
+                enemies.push({
+                    x: pos.x,
+                    y: pos.y,
+                    w: 28,
+                    h: 35,
+                    vx: rand(0.5, 1.5) * (Math.random() > 0.5 ? 1 : -1),
+                    speed: rand(0.5, 1.5),
+                    health: 3,
+                    maxHealth: 3,
+                    color: '#FF6B6B',
+                    shootTimer: 0,
+                    shootDelay: randInt(80, 200)
+                });
+            });
+            
+            // Патроны на карте
+            for (let i = 0; i < 5; i++) {
+                const x = rand(50, WIDTH - 50);
+                const y = rand(50, HEIGHT - 100);
+                // Проверяем, чтобы не на платформе
+                let onPlatform = false;
+                for (let p of platforms) {
+                    if (x > p.x && x < p.x + p.w && y > p.y && y < p.y + p.h) {
+                        onPlatform = true;
+                        break;
+                    }
+                }
+                if (!onPlatform) {
+                    ammoPacks.push({
+                        x: x,
+                        y: y,
+                        w: 16,
+                        h: 16,
+                        amount: 5,
+                        bobTimer: rand(0, Math.PI * 2)
+                    });
+                }
+            }
+        }
+        
+        // ===== ОБНОВЛЕНИЕ =====
+        function update() {
+            if (gameOver || win) return;
+            frameCount++;
+            
+            // Обновление кулдаунов
+            if (player.shootCooldown > 0) player.shootCooldown--;
+            
+            // Перезарядка
+            if (player.reloading) {
+                player.reloadTimer--;
+                if (player.reloadTimer <= 0) {
+                    player.ammo = player.maxAmmo;
+                    player.reloading = false;
+                    spawnParticles(player.x + player.w/2, player.y + player.h/2, '#4CAF50', 15, 3);
+                }
+            }
+            
+            // Движение игрока
+            let moveX = 0;
+            if (buttons.left || keys['a'] || keys['ArrowLeft']) moveX = -1;
+            if (buttons.right || keys['d'] || keys['ArrowRight']) moveX = 1;
+            
+            if (moveX !== 0) {
+                player.vx = moveX * player.speed;
+                player.facing = moveX;
+            } else {
+                player.vx *= 0.8;
+                if (Math.abs(player.vx) < 0.1) player.vx = 0;
+            }
+            
+            // Гравитация
+            player.vy += GRAVITY;
+            if (player.vy > 15) player.vy = 15;
+            
+            // Движение по X
+            player.x += player.vx;
+            
+            // Коллизия по X
+            for (let p of platforms) {
+                if (rectCollide(player, p)) {
+                    if (player.vx > 0) {
+                        player.x = p.x - player.w;
+                    } else if (player.vx < 0) {
+                        player.x = p.x + p.w;
+                    }
+                    player.vx = 0;
+                }
+            }
+            
+            // Движение по Y
+            player.y += player.vy;
+            player.onGround = false;
+            
+            // Коллизия по Y
+            for (let p of platforms) {
+                if (rectCollide(player, p)) {
+                    if (player.vy > 0) {
+                        player.y = p.y - player.h;
+                        player.vy = 0;
+                        player.onGround = true;
+                    } else if (player.vy < 0) {
+                        player.y = p.y + p.h;
+                        player.vy = 0;
+                    }
+                }
+            }
+            
+            // Границы
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.w > WIDTH) player.x = WIDTH - player.w;
+            if (player.y < 0) { player.y = 0; player.vy = 0; }
+            if (player.y + player.h > HEIGHT) {
+                player.y = HEIGHT - player.h;
+                player.vy = 0;
+                player.onGround = true;
+            }
+            
+            // Сбор патронов
+            for (let i = ammoPacks.length - 1; i >= 0; i--) {
+                const pack = ammoPacks[i];
+                if (rectCollide(player, pack)) {
+                    player.ammo = Math.min(player.maxAmmo, player.ammo + pack.amount);
+                    spawnParticles(pack.x + pack.w/2, pack.y + pack.h/2, '#4CAF50', 15, 4);
+                    ammoPacks.splice(i, 1);
+                }
+            }
+            
+            // Обновление пуль игрока
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                b.x += b.vx;
+                b.y += b.vy;
+                b.life--;
+                
+                // Трассер
+                b.trail.push({x: b.x, y: b.y});
+                if (b.trail.length > 5) b.trail.shift();
+                
+                if (b.life <= 0 || b.x < -50 || b.x > WIDTH + 50) {
+                    bullets.splice(i, 1);
+                    continue;
+                }
+                
+                // Попадание во врагов
+                let hit = false;
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    const enemy = enemies[j];
+                    if (rectCollide(b, enemy)) {
+                        enemy.health--;
+                        spawnParticles(b.x + b.w/2, b.y + b.h/2, '#FF6B6B', 15, 5);
+                        if (enemy.health <= 0) {
+                            spawnParticles(enemy.x + enemy.w/2, enemy.y + enemy.h/2, '#FF1744', 30, 6);
+                            // Шанс выпадения патронов
+                            if (Math.random() < 0.3) {
+                                ammoPacks.push({
+                                    x: enemy.x + enemy.w/2 - 8,
+                                    y: enemy.y + enemy.h/2 - 8,
+                                    w: 16,
+                                    h: 16,
+                                    amount: 3,
+                                    bobTimer: rand(0, Math.PI * 2)
+                                });
+                            }
+                            enemies.splice(j, 1);
+                            score += 10;
+                            if (score >= WIN_SCORE) {
+                                win = true;
+                                spawnParticles(WIDTH/2, HEIGHT/2, '#FFD700', 50, 8);
+                            }
+                        }
+                        hit = true;
+                        break;
+                    }
+                }
+                if (hit) {
+                    bullets.splice(i, 1);
+                }
+            }
+            
+            // Обновление врагов
+            for (let enemy of enemies) {
+                // Движение
+                enemy.x += enemy.vx;
+                
+                for (let p of platforms) {
+                    if (rectCollide(enemy, p)) {
+                        if (enemy.vx > 0) {
+                            enemy.x = p.x - enemy.w;
+                            enemy.vx *= -1;
+                        } else if (enemy.vx < 0) {
+                            enemy.x = p.x + p.w;
+                            enemy.vx *= -1;
+                        }
+                    }
+                }
+                
+                if (enemy.x < 0) { enemy.x = 0; enemy.vx *= -1; }
+                if (enemy.x + enemy.w > WIDTH) { enemy.x = WIDTH - enemy.w; enemy.vx *= -1; }
+                
+                // Гравитация врагов
+                enemy.y += GRAVITY * 0.8;
+                for (let p of platforms) {
+                    if (rectCollide(enemy, p)) {
+                        if (enemy.y + enemy.h > p.y && enemy.y + enemy.h - GRAVITY * 0.8 <= p.y) {
+                            enemy.y = p.y - enemy.h;
+                        }
+                    }
+                }
+                
+                // Стрельба врагов
+                enemy.shootTimer++;
+                if (enemy.shootTimer >= enemy.shootDelay && !gameOver && !win) {
+                    enemy.shootTimer = 0;
+                    const dx = player.x - enemy.x;
+                    const dy = player.y - enemy.y;
+                    const d = dist(enemy.x, enemy.y, player.x, player.y);
+                    if (d < 500) {
+                        const speed = 3;
+                        enemyBullets.push({
+                            x: enemy.x + enemy.w/2,
+                            y: enemy.y + enemy.h/2,
+                            vx: (dx / d) * speed,
+                            vy: (dy / d) * speed,
+                            w: 8,
+                            h: 8,
+                            life: 150
+                        });
+                    }
+                }
+            }
+            
+            // Обновление пуль врагов
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                const b = enemyBullets[i];
+                b.x += b.vx;
+                b.y += b.vy;
+                b.life--;
+                
+                if (b.life <= 0 || b.x < -50 || b.x > WIDTH + 50 || b.y < -50 || b.y > HEIGHT + 50) {
+                    enemyBullets.splice(i, 1);
+                    continue;
+                }
+                
+                if (rectCollide(b, player)) {
+                    player.health -= 15;
+                    spawnParticles(player.x + player.w/2, player.y + player.h/2, '#FF1744', 20, 5);
+                    enemyBullets.splice(i, 1);
+                    if (player.health <= 0) {
+                        player.health = 0;
+                        gameOver = true;
+                        spawnParticles(player.x + player.w/2, player.y + player.h/2, '#FF1744', 50, 7);
+                    }
+                }
+            }
+            
+            // Обновление частиц
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += p.gravity || 0.1;
+                p.life--;
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+            
+            // Спавн патронов
+            if (ammoPacks.length < 3 && frameCount % 300 === 0) {
+                const x = rand(50, WIDTH - 50);
+                const y = rand(50, HEIGHT - 100);
+                let valid = true;
+                for (let p of platforms) {
+                    if (x > p.x && x < p.x + p.w && y > p.y && y < p.y + p.h) {
+                        valid = false;
+                        break;
+                    }
+                }
+                if (valid) {
+                    ammoPacks.push({
+                        x: x,
+                        y: y,
+                        w: 16,
+                        h: 16,
+                        amount: 5,
+                        bobTimer: rand(0, Math.PI * 2)
+                    });
+                }
+            }
+            
+            // Спавн новых врагов
+            if (enemies.length < 6 && frameCount % 180 === 0 && !gameOver && !win) {
+                const spawnPoints = [
+                    { x: rand(50, 200), y: 50 },
+                    { x: rand(600, 750), y: 50 },
+                    { x: rand(300, 500), y: 50 }
+                ];
+                const sp = spawnPoints[randInt(0, 2)];
+                enemies.push({
+                    x: sp.x,
+                    y: sp.y,
+                    w: 28,
+                    h: 35,
+                    vx: rand(0.5, 1.5) * (Math.random() > 0.5 ? 1 : -1),
+                    speed: rand(0.5, 1.5),
+                    health: 3,
+                    maxHealth: 3,
+                    color: '#FF6B6B',
+                    shootTimer: 0,
+                    shootDelay: randInt(80, 200)
+                });
+            }
+        }
+        
+        // ===== ОТРИСОВКА =====
+        function draw() {
+            ctx.clearRect(0, 0, WIDTH, HEIGHT);
+            
+            // Фон
+            const gradient = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+            gradient.addColorStop(0, '#0a1628');
+            gradient.addColorStop(0.5, '#1a3a5c');
+            gradient.addColorStop(1, '#0d1f30');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+            
+            // Звезды
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            for (let i = 0; i < 50; i++) {
+                const sx = (i * 137.5 + 50) % WIDTH;
+                const sy = (i * 97.3 + 20) % (HEIGHT * 0.7);
+                const size = (i % 3) + 1;
+                ctx.globalAlpha = 0.3 + (i % 5) * 0.1;
+                ctx.beginPath();
+                ctx.arc(sx, sy, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            
+            // Платформы
+            for (let p of platforms) {
+                ctx.fillStyle = p.color || '#8D6E63';
+                ctx.shadowColor = 'rgba(0,0,0,0.3)';
+                ctx.shadowBlur = 10;
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                ctx.fillRect(p.x + 5, p.y + 3, p.w - 10, 3);
+            }
+            
+            // Патроны на карте
+            for (let pack of ammoPacks) {
+                pack.bobTimer += 0.05;
+                const bobY = Math.sin(pack.bobTimer) * 3;
+                ctx.shadowColor = '#4CAF50';
+                ctx.shadowBlur = 15;
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillRect(pack.x, pack.y + bobY, pack.w, pack.h);
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('★', pack.x + pack.w/2, pack.y + bobY + 12);
+            }
+            
+            // Пули игрока
+            for (let b of bullets) {
+                // Трассер
+                for (let t = 0; t < b.trail.length; t++) {
+                    const alpha = t / b.trail.length * 0.5;
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = '#FFD700';
+                    ctx.beginPath();
+                    ctx.arc(b.trail[t].x, b.trail[t].y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+                
+                ctx.shadowColor = '#FFD700';
+                ctx.shadowBlur = 20;
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.arc(b.x + b.w/2, b.y + b.h/2, b.w/2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.beginPath();
+                ctx.arc(b.x + b.w/2 - 2, b.y + b.h/2 - 2, b.w/3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Пули врагов
+            for (let b of enemyBullets) {
+                ctx.shadowColor = '#FF1744';
+                ctx.shadowBlur = 15;
+                ctx.fillStyle = '#FF1744';
+                ctx.beginPath();
+                ctx.arc(b.x + b.w/2, b.y + b.h/2, b.w/2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.beginPath();
+                ctx.arc(b.x + b.w/2 - 1, b.y + b.h/2 - 1, b.w/4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Враги
+            for (let enemy of enemies) {
+                ctx.shadowColor = 'rgba(255,0,0,0.3)';
+                ctx.shadowBlur = 20;
+                ctx.fillStyle = enemy.color;
+                ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h);
+                ctx.shadowBlur = 0;
+                
+                // Глаза
+                ctx.fillStyle = 'white';
+                ctx.fillRect(enemy.x + 4, enemy.y + 5, 7, 7);
+                ctx.fillRect(enemy.x + enemy.w - 11, enemy.y + 5, 7, 7);
+                ctx.fillStyle = '#333';
+                ctx.fillRect(enemy.x + 6, enemy.y + 7, 4, 4);
+                ctx.fillRect(enemy.x + enemy.w - 9, enemy.y + 7, 4, 4);
+                
+                // Рот
+                ctx.fillStyle = '#333';
+                ctx.fillRect(enemy.x + 5, enemy.y + enemy.h - 10, enemy.w - 10, 3);
+                
+                // HP бар
+                const hpPercent = enemy.health / enemy.maxHealth;
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillRect(enemy.x, enemy.y - 10, enemy.w, 5);
+                ctx.fillStyle = hpPercent > 0.5 ? '#4CAF50' : '#FF6B6B';
+                ctx.fillRect(enemy.x, enemy.y - 10, enemy.w * hpPercent, 5);
+            }
+            
+            // Игрок
+            const cx = player.x + player.w/2;
+            const cy = player.y + player.h/2;
+            const radius = player.w/2;
+            
+            // Тень
+            if (player.onGround) {
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.beginPath();
+                ctx.ellipse(player.x + player.w/2, player.y + player.h + 5, player.w/2, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            ctx.shadowColor = 'rgba(79, 195, 247, 0.3)';
+            ctx.shadowBlur = 20;
+            
+            const grad = ctx.createRadialGradient(cx - 5, cy - 5, 2, cx, cy, radius);
+            grad.addColorStop(0, '#81D4FA');
+            grad.addColorStop(0.7, '#4FC3F7');
+            grad.addColorStop(1, '#0288D1');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            
+            // Глаза
+            const eyeY = cy - 3;
+            const eyeOff = 6;
+            let ex1, ex2;
+            if (player.facing === 1) {
+                ex1 = cx - eyeOff;
+                ex2 = cx + eyeOff;
+            } else {
+                ex1 = cx + eyeOff;
+                ex2 = cx - eyeOff;
+            }
+            
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(ex1, eyeY, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(ex2, eyeY, 6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#333';
+            const pupilOff = player.facing === 1 ? 2 : -2;
+            ctx.beginPath();
+            ctx.arc(ex1 + pupilOff, eyeY + 1, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(ex2 + pupilOff, eyeY + 1, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(ex1 + pupilOff + 1.5, eyeY - 1.5, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(ex2 + pupilOff + 1.5, eyeY - 1.5, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Улыбка
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            if (player.facing === 1) {
+                ctx.arc(cx, cy + 4, 8, 0.1, Math.PI - 0.1);
+            } else {
+                ctx.arc(cx, cy + 4, 8, Math.PI + 0.1, 2 * Math.PI - 0.1);
+            }
+            ctx.stroke();
+            
+            // Румянец
+            ctx.fillStyle = 'rgba(255, 150, 150, 0.3)';
+            ctx.beginPath();
+            ctx.arc(cx - 12, cy + 6, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(cx + 12, cy + 6, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Частицы
+            for (let p of particles) {
+                const alpha = p.life / p.maxLife;
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+            }
+            ctx.globalAlpha = 1;
+            
+            // ===== ИНТЕРФЕЙС =====
+            // HP бар
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(10, 10, 140, 20);
+            const hpPercent = player.health / player.maxHealth;
+            const hpColor = hpPercent > 0.5 ? '#4CAF50' : hpPercent > 0.25 ? '#FFC107' : '#F44336';
+            ctx.fillStyle = hpColor;
+            ctx.shadowColor = hpColor;
+            ctx.shadowBlur = 10;
+            ctx.fillRect(10, 10, 140 * hpPercent, 20);
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 11px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`❤️ ${player.health}`, 80, 26);
+            
+            // Патроны
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(160, 10, 100, 20);
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(160, 10, 100 * (player.ammo / player.maxAmmo), 20);
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 11px Arial';
+            ctx.fillText(`🔫 ${player.ammo}/${player.maxAmmo}`, 210, 26);
+            
+            // Перезарядка
+            if (player.reloading) {
+                ctx.fillStyle = 'rgba(255,200,0,0.3)';
+                ctx.fillRect(160, 10, 100, 20);
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 10px Arial';
+                ctx.fillText('ПЕРЕЗАРЯДКА...', 210, 26);
+            }
+            
+            // Счет
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(270, 10, 120, 20);
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(270, 10, 120 * Math.min(score / WIN_SCORE, 1), 20);
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 11px Arial';
+            ctx.fillText(`⭐ ${score}/${WIN_SCORE}`, 330, 26);
+            
+            // Враги
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(400, 10, 70, 20);
+            ctx.fillStyle = '#FF6B6B';
+            ctx.font = 'bold 11px Arial';
+            ctx.fillText(`👾 ${enemies.length}`, 435, 26);
+            
+            // Подсказка о перезарядке
+            if (player.ammo === 0 && !player.reloading) {
+                ctx.fillStyle = 'rgba(255,0,0,0.5)';
+                ctx.fillRect(WIDTH/2 - 80, 60, 160, 25);
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('⚠️ НЕТ ПАТРОНОВ!', WIDTH/2, 79);
+            }
+            
+            // Сообщения
+            if (win) {
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.fillRect(0, 0, WIDTH, HEIGHT);
+                ctx.fillStyle = '#FFD700';
+                ctx.font = 'bold 50px Arial';
+                ctx.textAlign = 'center';
+                ctx.shadowColor = '#FFD700';
+                ctx.shadowBlur = 30;
+                ctx.fillText('🎉 ПОБЕДА!', WIDTH/2, HEIGHT/2 - 30);
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = 'white';
+                ctx.font = '24px Arial';
+                ctx.fillText(`Счет: ${score}`, WIDTH/2, HEIGHT/2 + 30);
+                ctx.font = '18px Arial';
+                ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                ctx.fillText('Нажмите R для перезапуска', WIDTH/2, HEIGHT/2 + 80);
+            }
+            
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.fillRect(0, 0, WIDTH, HEIGHT);
+                ctx.fillStyle = '#FF1744';
+                ctx.font = 'bold 50px Arial';
+                ctx.textAlign = 'center';
+                ctx.shadowColor = '#FF1744';
+                ctx.shadowBlur = 30;
+                ctx.fillText('💀 ИГРА ОКОНЧЕНА', WIDTH/2, HEIGHT/2 - 30);
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = 'white';
+                ctx.font = '24px Arial';
+                ctx.fillText(`Счет: ${score}`, WIDTH/2, HEIGHT/2 + 30);
+                ctx.font = '18px Arial';
+                ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                ctx.fillText('Нажмите R для перезапуска', WIDTH/2, HEIGHT/2 + 80);
+            }
+        }
+        
+        // ===== ПЕРЕЗАПУСК =====
+        function restart() {
+            platforms.length = 0;
+            enemies.length = 0;
+            bullets.length = 0;
+            particles.length = 0;
+            enemyBullets.length = 0;
+            ammoPacks.length = 0;
+            
+            player.x = 100;
+            player.y = 300;
+            player.vx = 0;
+            player.vy = 0;
+            player.health = 100;
+            player.onGround = false;
+            player.facing = 1;
+            player.shootCooldown = 0;
+            player.ammo = 30;
+            player.reloading = false;
+            player.reloadTimer = 0;
+            
+            score = 0;
+            gameOver = false;
+            win = false;
+            frameCount = 0;
+            
+            createLevel();
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'r' || e.key === 'R') {
+                restart();
+            }
+            if (e.key === 'r' || e.key === 'R') {
+                restart();
+            }
+        });
+        
+        // ===== ЗАПУСК =====
+        createLevel();
+        
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        gameLoop();
+        
+        // ===== АДАПТАЦИЯ =====
+        function resizeGame() {
+            const wrapper = document.getElementById('gameWrapper');
+            const containerWidth = window.innerWidth - 20;
+            const containerHeight = window.innerHeight - 20;
+            const ratio = 800 / 500;
+            
+            let width = containerWidth;
+            let height = containerWidth / ratio;
+            
+            if (height > containerHeight) {
+                height = containerHeight;
+                width = containerHeight * ratio;
+            }
+            
+            wrapper.style.width = Math.min(width, 800) + 'px';
+            wrapper.style.height = Math.min(height, 500) + 'px';
+        }
+        
+        window.addEventListener('resize', resizeGame);
+        resizeGame();
+        
+        document.addEventListener('touchmove', (e) => {
+            if (e.target.closest('#gameWrapper')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        console.log('🎮 Игра запущена!');
+        console.log('📱 Мобильные: ◀ ▶ движение, ▲ прыжок, 🔫 стрельба');
+        console.log('⌨️ Клавиатура: WASD/Стрелки - движение, Пробел - прыжок, F - стрельба');
+        console.log('🔄 R - перезапуск');
+        console.log('📦 Собирайте патроны ★ для пополнения боезапаса!');
+    </script>
+</body>
+</html>
